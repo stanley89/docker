@@ -52,7 +52,19 @@ docker run --net my-net --net-alias mysql -e MYSQL_ROOT_PASSWORD=pw mariadb:10.1
 docker run --net my net --net-alias wp -p 8080:80 -e WORDPRESS_DB_PASSWORD=pw  wordpress:4.6
 ```
 
-## Tipy
+## Údržba
+
+Pokud s dockerem více experimentujete, tak se vám začnou hromadit obrazy i containery. Čili je občas potřeba zkontrolovat:
+
+```bash
+docker image        # stažené obrazy
+docker volume ls    # volumes
+docker network ls   # sítě
+# A vše vyřeší:
+docker system prune
+```
+
+## Konkrétní tipy
 
 **Přístup do DB**: `docker run -it --rm mariadb:latest mysql -h<ip> -ur<user>-p<passwd> <db>`
 
@@ -71,28 +83,32 @@ Důležité je definovat síť a alias v dané síti, abychom se k DB mohli při
 
 **DB dump**:
 ```
-  docker exec <my-db> \
+docker exec <my-db> \
   sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' > /some/path/on/your/host/all-databases.sql
 ```
 
 **Redmine**:
 ```
-
+docker network create rednet
+docker volume create --name redmine-db
+docker volume create --name redmine-data
+docker volume create --name redmine-logs
+docker pull mariadb:latest
+docker pull sameersbn/redmine:3.3.2-1
+docker run -d --name redmine-db \
+	--net rednet --net-alias mariadb
+	-v "redmine-db:/var/lib/mysql" mariadb` \
+	-e MYSQL_DATABASE=redmine -e MYSQL_USER=redmine -e MYSQL_PASSWORD=redmine \
+	mariadb:latest
+# Je třeba počkat než DB nahraje
+docker run -d --name redmine \
+	--net rednet --net-alias redmine \
+	-v "redmine-data:/home/redmine/data " \
+	-v "redmine-logs:/var/log/redmine" \
+	-p 3000:80 --env='REDMINE_PORT=3000' \
+	--env='DB_TYPE=mysql' --env='DB_ADAPTER=mysql2' \
+	--env="DB_HOST=mariadb" --env='DB_NAME=redmine' --env='DB_USER=redmine' --env='DB_PASS=redmine' \
+ 	sameersbn/redmine:3.3.2-1
 ```
 
-**Dokuwiki**:
-```
 
-```
-
-## Údržba
-
-Pokud s dockerem více experimentujete, tak se vám začnou hromadit obrazy i containery. Čili je občas potřeba zkontrolovat:
-
-```bash
-docker image        # stažené obrazy
-docker volume ls    # volumes
-docker network ls   # sítě
-# A vše vyřeší:
-docker system prune
-```
