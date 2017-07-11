@@ -18,7 +18,7 @@ Běžící kontejner má volumes. To jsou speciální složky (popř. partitions
 **Persistentní uložiště** (volume): namountované složky, které jsou persistentní mezi běhy. Mohou být:
  * nepojmenované: vytvoří se složka ve `/var/lib/docker/volumes/`, ale bude pojmenavaná hashem. Pozor vytváří se pro každý volumes v kontejneru - i pro takový s kterým v parametrech vůbec nepracujeme. Je dobré je občas promazat.
  * **pojmenovaný**: vytvoří se pojmenovaná složka ve `/var/lib/docker/volumes/`
- * mountovaný: využije se konkrétně zadaná složka v hostovi. Tato metoda není rozumná, protože narazíme na problémy s SElinuxem apod.
+ * mountovaný: využije se konkrétně zadaná složka v hostovi. Tato metoda není rozumná, protože narazíme na problémy s SElinuxem apod. Navíc je méně přehledná pro zorientování se a migraci.
 
 QuickStart
 ----------
@@ -66,6 +66,8 @@ docker system prune
 
 ## Konkrétní tipy
 
+### DB
+
 **Přístup do DB**: `docker run -it --rm mariadb:latest mysql -h<ip> -ur<user>-p<passwd> <db>`
 
 **Run local DB**:
@@ -86,6 +88,32 @@ Důležité je definovat síť a alias v dané síti, abychom se k DB mohli při
 docker exec <my-db> \
   sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' > /some/path/on/your/host/all-databases.sql
 ```
+
+
+### Volumes
+
+Připojení redmine-data (read-only) a aktuální složky.
+
+```
+sudo docker run --rm -ti -v "redmine-data:/redmine-data:ro" -v "$PWD:/pwd" alpine
+```
+
+V základním alpine máme ls, cp, tar, gz apod. Mohl by nám chybět rsync, popř. ssh. Buďto je můžeme doinstalovat:
+
+```
+apk update
+apk add rsync openssh
+```
+
+Anebo použít přímo připravený obraz: `netroby/alpine-rsync` 
+
+Popř. můžeme namountovat všechny volumes z běžícího kontejneru:
+
+```
+sudo docker run --rm -ti --volumes-from redmine:ro -v "$PWD:/pwd" alpine
+```
+
+### Aplikace
 
 **Redmine**:
 ```
@@ -111,4 +139,5 @@ docker run -d --name redmine \
  	sameersbn/redmine:3.3.2-1
 ```
 
+Může to znít složitě, ale díky tomu máme data uložna ve 3 izolovaných volumes, vše je zabaleno do jedné sítě z které jde ven jen jeden port a jsme schopni velmi nenáročně aktualizovat DB i aplikaci. Navíc se velmi podobně bude řešit jakákoliv jiná alikace.
 
