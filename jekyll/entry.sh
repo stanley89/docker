@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 
 baseGitPath="https://github.com/pirati-web/"
 reposDir=/mnt/repo

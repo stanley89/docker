@@ -1,0 +1,6 @@
+[
+	{
+		"id": "deploy",
+		"execute-command": "/usr/bin/entry.sh"
+	}
+]
